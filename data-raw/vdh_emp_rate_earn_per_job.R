@@ -112,20 +112,20 @@ con <- dbConnect(PostgreSQL(),
                  dbname = "sdad",
                  host = "postgis1",
                  port = 5432,
-                 user = "hc2cc",
-                 password = "hc2cchc2cc")
-tracts <- dbGetQuery(con, "SELECT * FROM dc_common.va_tr_sdad_2021_virginia_tract_geoids")
+                 user = "YOUR_USERNAME",
+                 password = "YOUR_PASSWORD")
+geo_names <- dbGetQuery(con, "SELECT * FROM dc_geographies.ncr_cttrbg_tiger_2010_2020_geo_names")
 dbDisconnect(con)
 
+tracts <- geo_names %>% filter(region_type == "tract")
 acs_est_all <- left_join(acs_est_all, tracts, by=c("GEOID" = "geoid"))
-
-acs_est_all["region_type"] <- "tract"
 
 emp_rate <- melt(acs_est_all,
                          id.vars=c("GEOID", "region_name", "region_type"),
                          variable.name="measure",
                          value.name="value"
 )
+
 emp_rate['year'] =  str_sub(emp_rate$measure,-4,-1)
 emp_rate$measure = str_sub(emp_rate$measure,1,-6)
 indx1 <- grepl('numerator', emp_rate$measure)
@@ -133,76 +133,80 @@ indx2 <- grepl('denominator', emp_rate$measure)
 indx3 <- grepl('emp_rate', emp_rate$measure)
 emp_rate$measure_type[indx1] <- 'count'
 emp_rate$measure_type[indx2] <- 'count'
-emp_rate$measure_type[indx3] <- 'rate'
-emp_rate['measure_units'] <- 'number of people'
-emp_rate["measure_units"][emp_rate["measure"] == "emp_rate"] <- "percent"
+emp_rate$measure_type[indx3] <- 'percent'
 
 names(emp_rate)[1] <- 'geoid'
 
-# ################################## earnings per job ########################################
-#
-# # load csv from BEA
-# tot_emp <- read_csv("~/R/access_to_edu/bea_earnings/bea_tot_employment.csv")
-# wage_sup <- read_csv("~/R/access_to_edu/bea_earnings/bea_wage_supplement.csv")
-# wage_sal <- read_csv("~/R/access_to_edu/bea_earnings/bea_wages_salaries.csv")
-# prop_inc <- read_csv("~/R/access_to_edu/bea_earnings/prop_income.csv")
-#
-# # init empty df
-# earn_job <- tot_emp %>% select(GeoFips, GeoName)
-#
-# # compute emp rate
-# earn_job['tot_compensation_2015'] <- (wage_sup$`2015`+wage_sal$`2015`+prop_inc$`2015`) * 1000
-# earn_job['tot_compensation_2016'] <- (wage_sup$`2016`+wage_sal$`2016`+prop_inc$`2016`) * 1000
-# earn_job['tot_compensation_2017'] <- (wage_sup$`2017`+wage_sal$`2017`+prop_inc$`2017`) * 1000
-# earn_job['tot_compensation_2018'] <- (wage_sup$`2018`+wage_sal$`2018`+prop_inc$`2018`) * 1000
-# earn_job['tot_compensation_2019'] <- (wage_sup$`2019`+wage_sal$`2019`+prop_inc$`2019`) * 1000
-# earn_job['tot_compensation_2020'] <- (wage_sup$`2020`+wage_sal$`2020`+prop_inc$`2020`) * 1000
-#
-# earn_job['tot_employment_2015'] <- tot_emp$`2015`
-# earn_job['tot_employment_2016'] <- tot_emp$`2016`
-# earn_job['tot_employment_2017'] <- tot_emp$`2017`
-# earn_job['tot_employment_2018'] <- tot_emp$`2018`
-# earn_job['tot_employment_2019'] <- tot_emp$`2019`
-# earn_job['tot_employment_2020'] <- tot_emp$`2020`
-#
-# earn_job['earnings_per_job_2015'] <- (wage_sup$`2015`+wage_sal$`2015`+prop_inc$`2015`)/tot_emp$`2015` * 1000
-# earn_job['earnings_per_job_2016'] <- (wage_sup$`2016`+wage_sal$`2016`+prop_inc$`2016`)/tot_emp$`2016` * 1000
-# earn_job['earnings_per_job_2017'] <- (wage_sup$`2017`+wage_sal$`2017`+prop_inc$`2017`)/tot_emp$`2017` * 1000
-# earn_job['earnings_per_job_2018'] <- (wage_sup$`2018`+wage_sal$`2018`+prop_inc$`2018`)/tot_emp$`2018` * 1000
-# earn_job['earnings_per_job_2019'] <- (wage_sup$`2019`+wage_sal$`2019`+prop_inc$`2019`)/tot_emp$`2019` * 1000
-# earn_job['earnings_per_job_2020'] <- (wage_sup$`2020`+wage_sal$`2020`+prop_inc$`2020`)/tot_emp$`2020` * 1000
-#
-# # format
-# # connect to database
-# con <- dbConnect(PostgreSQL(),
-#                  dbname = "sdad",
-#                  host = "postgis1",
-#                  port = 5432,
-#                  user = "hc2cc",
-#                  password = "hc2cchc2cc")
-#
-# counties <- dbGetQuery(con, "SELECT * FROM dc_common.va_ct_sdad_2021_virginia_county_geoids")
-# dbDisconnect(con)
-#
-# earn_job["region_type"] <- "county"
-#
-# earn_job_ct_long <- melt(earn_job,
-#                            id.vars=c("GeoFips", "GeoName", "region_type"),
-#                            variable.name="measure",
-#                            value.name="value"
-# )
-#
-# earn_job_ct_long['year'] =  str_sub(earn_job_ct_long$measure,-4,-1)
-# earn_job_ct_long$measure = str_sub(earn_job_ct_long$measure,1,-6)
-#
-#
-# earn_job_ct_long['measure_type'] = 'count'
-# earn_job_ct_long['measure_type'][earn_job_ct_long["measure"] == "earnings_per_job"] <- 'ratio'
-# earn_job_ct_long['measure_units'] <- 'dollars'
-# earn_job_ct_long['measure_units'][earn_job_ct_long["measure"] == "tot_employment"] <- 'number of people'
-#
-# names(earn_job_ct_long)[1] <- 'geoid'
-# names(earn_job_ct_long)[2] <- 'region_name'
+# re-arrange columns
+emp_rate <- emp_rate[, c(1, 3, 2, 6, 4, 5, 7)]
+
+################################## earnings per job ########################################
+
+# load csv from BEA
+tot_emp <- read_csv("bea_earnings/bea_tot_employment.csv")
+wage_sup <- read_csv("bea_wage_supplement.csv")
+wage_sal <- read_csv("bea_wages_salaries.csv")
+prop_inc <- read_csv("prop_income.csv")
+
+# init empty df
+earn_job <- tot_emp %>% select(GeoFips, GeoName)
+
+# compute emp rate
+earn_job['tot_compensation_2015'] <- (wage_sup$`2015`+wage_sal$`2015`+prop_inc$`2015`) * 1000
+earn_job['tot_compensation_2016'] <- (wage_sup$`2016`+wage_sal$`2016`+prop_inc$`2016`) * 1000
+earn_job['tot_compensation_2017'] <- (wage_sup$`2017`+wage_sal$`2017`+prop_inc$`2017`) * 1000
+earn_job['tot_compensation_2018'] <- (wage_sup$`2018`+wage_sal$`2018`+prop_inc$`2018`) * 1000
+earn_job['tot_compensation_2019'] <- (wage_sup$`2019`+wage_sal$`2019`+prop_inc$`2019`) * 1000
+earn_job['tot_compensation_2020'] <- (wage_sup$`2020`+wage_sal$`2020`+prop_inc$`2020`) * 1000
+
+earn_job['tot_employment_2015'] <- tot_emp$`2015`
+earn_job['tot_employment_2016'] <- tot_emp$`2016`
+earn_job['tot_employment_2017'] <- tot_emp$`2017`
+earn_job['tot_employment_2018'] <- tot_emp$`2018`
+earn_job['tot_employment_2019'] <- tot_emp$`2019`
+earn_job['tot_employment_2020'] <- tot_emp$`2020`
+
+earn_job['earnings_per_job_2015'] <- (wage_sup$`2015`+wage_sal$`2015`+prop_inc$`2015`)/tot_emp$`2015` * 1000
+earn_job['earnings_per_job_2016'] <- (wage_sup$`2016`+wage_sal$`2016`+prop_inc$`2016`)/tot_emp$`2016` * 1000
+earn_job['earnings_per_job_2017'] <- (wage_sup$`2017`+wage_sal$`2017`+prop_inc$`2017`)/tot_emp$`2017` * 1000
+earn_job['earnings_per_job_2018'] <- (wage_sup$`2018`+wage_sal$`2018`+prop_inc$`2018`)/tot_emp$`2018` * 1000
+earn_job['earnings_per_job_2019'] <- (wage_sup$`2019`+wage_sal$`2019`+prop_inc$`2019`)/tot_emp$`2019` * 1000
+earn_job['earnings_per_job_2020'] <- (wage_sup$`2020`+wage_sal$`2020`+prop_inc$`2020`)/tot_emp$`2020` * 1000
+
+# format
+# connect to database
+con <- dbConnect(PostgreSQL(),
+                 dbname = "sdad",
+                 host = "postgis1",
+                 port = 5432,
+                 user = "YOUR_USERNAME",
+                 password = "YOUR_PASSWROD")
+
+geo_names <- dbGetQuery(con, "SELECT * FROM dc_geographies.ncr_cttrbg_tiger_2010_2020_geo_names")
+dbDisconnect(con)
+
+counties <- geo_names %>% filter(region_type=="county")
+earn_job$GeoFips <- as.character(earn_job$GeoFips)
+earn_job_ct <- left_join(earn_job, counties, by=c("GeoFips" = "geoid"))
+earn_job_ct <- earn_job_ct %>% select(-GeoName)
+
+earn_job_ct_long <- melt(earn_job_ct,
+                           id.vars=c("GeoFips", "region_type", "region_name"),
+                           variable.name="measure",
+                           value.name="value"
+)
+
+earn_job_ct_long['year'] =  str_sub(earn_job_ct_long$measure,-4,-1)
+earn_job_ct_long$measure = str_sub(earn_job_ct_long$measure,1,-6)
+
+earn_job_ct_long['measure_type'] = 'count'
+earn_job_ct_long['measure_type'][earn_job_ct_long["measure"] == "earnings_per_job"] <- 'dollars'
+earn_job_ct_long['measure_type'][earn_job_ct_long["measure"] == "tot_compensation"] <- 'dollars'
+
+names(earn_job_ct_long)[1] <- 'geoid'
+
+# re-arrange columns
+earn_job_ct_long <- earn_job_ct_long[, c(1, 2, 3, 6, 4, 5, 7)]
 
 # upload to database
 con <- dbConnect(PostgreSQL(),
@@ -212,16 +216,17 @@ con <- dbConnect(PostgreSQL(),
                  user = "YOUR_USERNAME",
                  password = "YOUR_PASSWORD")
 
-#dbWriteTable(con, c("dc_education_training", "va_ct_bea_2015_2020_earnings_per_job"),
-#             earn_job_ct_long,  row.names = F)
+dbWriteTable(con, c("dc_education_training", "va_ct_bea_2015_2020_earnings_per_job"),
+             earn_job_ct_long,  row.names = F)
 dbWriteTable(con, c("dc_education_training", "va_tr_acs_2015_2019_emp_rate"),
              emp_rate,  row.names = F)
 
-#dbRemoveTable(con, c("dc_education_training", "va_ct_bea_2015_2020_earnings_per_job"),
-#             earn_job_ct_long)
+dbRemoveTable(con, c("dc_education_training", "va_ct_bea_2015_2020_earnings_per_job"))
+dbRemoveTable(con, c("dc_education_training", "va_tr_acs_2015_2019_emp_rate"))
 
-#dbSendStatement(con, "ALTER TABLE dc_education_training.va_ct_bea_2015_2020_earnings_per_job
-#                    OWNER TO data_commons")
+dbSendStatement(con, "ALTER TABLE dc_education_training.va_ct_bea_2015_2020_earnings_per_job
+                    OWNER TO data_commons")
 dbSendStatement(con, "ALTER TABLE dc_education_training.va_tr_acs_2015_2019_emp_rate
                     OWNER TO data_commons")
+
 dbDisconnect(con)
