@@ -1,5 +1,5 @@
 {
-  "civilian_employment_rate:employment_rate": {
+  "emp_rate:emp_rate": {
     "category": "Employment/Workforce Development",
     "measure_table": "civilian_employment_rate",
     "full_name": "civilian_employment_rate:employment_rate",

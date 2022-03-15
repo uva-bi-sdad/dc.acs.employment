@@ -1,0 +1,27 @@
+{
+  "name": "dc.acs.employment",
+  "data": [
+    {
+      "name": "emp_rate",
+      "variables": ["numerator", "denominator", "emp_rate"],
+      "file": "va_tr_acs_2015_2019_emp_rate.csv.xz",
+      "size": 178072,
+      "md5": "35fcb3181e983499603d5c160ce32a74"
+    }
+  ],
+  "distributions": {
+    "dataverse": {
+      "id": 55836,
+      "doi": "doi:10.18130/V3/5U8LSL",
+      "server": "https://dataverse.lib.virginia.edu/",
+      "data": [
+        {
+          "file": "va_tr_acs_2015_2019_emp_rate.csv.xz",
+          "id": 55925,
+          "size": 178072,
+          "md5": "35fcb3181e983499603d5c160ce32a74"
+        }
+      ]
+    }
+  }
+}
